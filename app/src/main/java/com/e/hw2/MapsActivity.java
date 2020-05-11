@@ -233,6 +233,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                             .setFriction(1.1f)
                             .start();
                     buttons_shown = false;
+                    TextView acc = findViewById(R.id.accelerationText);
+                    acc.setVisibility(View.INVISIBLE);
                 }
             }
         });
