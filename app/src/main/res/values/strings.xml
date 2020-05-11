@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">hw2</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="button_clear">CLEAR MEMORY</string>
+</resources>
