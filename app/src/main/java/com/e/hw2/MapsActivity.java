@@ -50,13 +50,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     Sensor accelerometer;
     SensorManager sensorManager;
     boolean recording;
-    FileReader fileReader;
-    FileWriter fileWriter;
-    BufferedReader bufferedReader;
-    BufferedWriter bufferedWriter;
     JSONObject markers;
     JSONArray markerArray;
-    File file;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,8 +61,55 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        markerArray = new JSONArray();
+        markers = new JSONObject();
+        StringBuilder stringBuilder;
+        String response = "";
+        File file = new File(getFilesDir(),"markersArray");
+        if(file.exists()){
+        try {
+            FileReader fileReader = new FileReader(file);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            stringBuilder = new StringBuilder();
+            String line = bufferedReader.readLine();
+            while (line != null){
+                stringBuilder.append(line).append("\n");
+                line = bufferedReader.readLine();
+            }
+            bufferedReader.close();
+            response = stringBuilder.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            markers = new JSONObject(response);
+            markerArray = markers.getJSONArray("markerArray");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Log.e("eo",response);
+    }
+        else {
+
+        }
     }
 
+
+    public void saveJSON() throws JSONException {
+        markers.put("markerArray",markerArray);
+        File file = new File(getFilesDir(),"markersArray");
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(file);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(markers.toString());
+            bufferedWriter.close();
+            Log.e("eo",markers.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Manipulates the map once available.
@@ -88,14 +130,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         final ImageButton zoomIn = findViewById(R.id.button_zoom_in);
         buttons_shown = false;
         recording = false;
-        if(markers.has("Marker")){
+        for(int i = 0; i<markerArray.length(); i=i+2)
+        {
+            LatLng latLng = null;
             try {
-                markerArray  = (JSONArray) markers.get("Marker");
-                Log.e("ee",markerArray.getString(0));
+                latLng = new LatLng(markerArray.getDouble(i),markerArray.getDouble(i+1));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+            mMap.addMarker(new MarkerOptions().position(latLng).title("Position:("+String.format("%.2f",latLng.latitude)+","+String.format("%.2f",latLng.longitude)+")"));
         }
+
 
         //todo animations
         //todo json saving
@@ -103,6 +148,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onMapClick(LatLng latLng) {
                 mMap.addMarker(new MarkerOptions().position(latLng).title("Position:("+String.format("%.2f",latLng.latitude)+","+String.format("%.2f",latLng.longitude)+")"));
+                try {
+                    markerArray.put(latLng.latitude);
+                    markerArray.put(latLng.longitude);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    saveJSON();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
         ImageButton zoomOut = findViewById(R.id.button_zoom_out);
@@ -114,13 +171,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                if(buttons_shown == false){
-                FlingAnimation fling = new FlingAnimation(buttons, DynamicAnimation.SCROLL_X);
-                fling.setStartVelocity(1000)
-                        .setMinValue(0)
-                        .setFriction(1.1f)
-                        .start();
-                buttons_shown = true;
+                if(buttons_shown == false) {
+                    FlingAnimation fling = new FlingAnimation(buttons, DynamicAnimation.SCROLL_X);
+                    fling.setStartVelocity(1000)
+                            .setMinValue(0)
+                            .setFriction(1.1f)
+                            .start();
+                    buttons_shown = true;
                 }
                 return false;
             }
@@ -146,6 +203,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 mMap.clear();
+                markerArray = new JSONArray();
+                try {
+                    saveJSON();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
